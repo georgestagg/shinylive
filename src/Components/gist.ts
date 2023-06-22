@@ -2,6 +2,12 @@
 // passed to App.runApp). If the type is "binary", then content is a
 import { isBinary, stringToUint8Array, uint8ArrayToString } from "../utils";
 import { FileContent } from "./filecontent";
+import { clone } from 'isomorphic-git';
+import http from 'isomorphic-git/http/web';
+import LightningFS from '@isomorphic-git/lightning-fs';
+
+import { Buffer } from 'buffer'
+globalThis.Buffer = Buffer;
 
 export type GistApiResponse = {
   url: string;
@@ -16,6 +22,12 @@ export type GistApiResponse = {
   comments: 1;
 };
 
+export type GistCheckoutResponse = {
+  fs: LightningFS;
+  id: string;
+  files: string[];
+}
+
 type GistFile = {
   filename: string;
   type: string;
@@ -27,6 +39,49 @@ type GistFile = {
   // request with Accept: "application/vnd.github.v3.base64".
   content: string;
 };
+
+const db = undefined as unknown as LightningFS.IDB;
+const fs = new LightningFS('fs', { wipe: true, db });
+const pfs = fs.promises;
+
+export async function checkoutGist(id: string): Promise<GistCheckoutResponse> {
+  await pfs.mkdir(`/${id}`, { mode: 777 });
+  await clone({
+    fs,
+    http,
+    dir: `/${id}`,
+    url: `https://gist.github.com/${id}.git`,
+    corsProxy: 'https://cors.isomorphic-git.org'
+  });
+  const files = await pfs.readdir(`/${id}`);
+  return { fs, id, files};
+}
+
+export async function gistCheckoutResponseToFileContents(
+  gist: GistCheckoutResponse
+): Promise<FileContent[]> {
+  const result: FileContent[] = [];
+
+  for (const filename of gist.files) {
+    if (filename === '.git') continue;
+    const content = await pfs.readFile(`/${gist.id}/${filename}`) as Uint8Array;
+    const binary = isBinary(content);
+    if (binary) {
+      result.push({
+        name: filename,
+        type: "binary",
+        content,
+      });
+    } else {
+      result.push({
+        name: filename,
+        type: "text",
+        content: uint8ArrayToString(content),
+      });
+    }
+  }
+  return result;
+}
 
 export async function fetchGist(id: string): Promise<GistApiResponse> {
   const response = await fetch("https://api.github.com/gists/" + id, {

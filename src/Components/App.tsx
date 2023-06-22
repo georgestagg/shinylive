@@ -18,7 +18,7 @@ import { ResizableGrid } from "./ResizableGrid/ResizableGrid";
 import { Terminal, TerminalInterface, TerminalMethods } from "./Terminal";
 import { Viewer, ViewerMethods } from "./Viewer";
 import { FCorFCJSONtoFC, FileContent, FileContentJson } from "./filecontent";
-import { fetchGist, gistApiResponseToFileContents } from "./gist";
+import { checkoutGist, gistCheckoutResponseToFileContents } from "./gist";
 import { editorUrlPrefix, fileContentsToUrlString } from "./share";
 import LZString from "lz-string";
 import * as React from "react";
@@ -503,8 +503,8 @@ export function runApp(
       else if (opts.allowGistUrl && hashParams.has("gist")) {
         const gistId = hashParams.get("gist") ?? "";
         try {
-          const gistApiResponse = await fetchGist(gistId);
-          startFiles = await gistApiResponseToFileContents(gistApiResponse);
+          const gistCheckoutResponse = await checkoutGist(gistId);
+          startFiles = await gistCheckoutResponseToFileContents(gistCheckoutResponse);
         } catch (e) {
           console.log("Could not parse JSON from gist " + gistId);
           startFiles = [];

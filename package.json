@@ -133,5 +133,10 @@
       "react-hooks/exhaustive-deps": "warn"
     }
   },
-  "packageManager": "yarn@3.2.3"
+  "packageManager": "yarn@3.2.3",
+  "dependencies": {
+    "@isomorphic-git/lightning-fs": "^4.6.0",
+    "buffer": "^6.0.3",
+    "isomorphic-git": "^1.24.2"
+  }
 }
