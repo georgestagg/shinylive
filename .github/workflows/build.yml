@@ -2,7 +2,7 @@ name: Build and deploy shinylive
 
 on:
   push:
-    branches: [main, deploy]
+    branches: [main, deploy, r-deploy-test]
   pull_request:
     branches: [main]
   release:
@@ -68,7 +68,7 @@ jobs:
       # Upload _shinylive/ artifact
       # =====================================================
       - name: Upload _shinylive/ artifact
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/r-deploy-test'
         uses: actions/upload-pages-artifact@v1
         with:
           path: "_shinylive/"
@@ -126,7 +126,7 @@ jobs:
   # Deploy GitHub Pages site
   # =====================================================
   deploy_gh_pages:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/r-deploy-test'
     needs: build
 
     permissions:
