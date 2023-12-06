@@ -15,7 +15,9 @@ jobs:
       matrix:
         python-version: ["3.10"]
       fail-fast: false
-
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v3
 
@@ -73,24 +75,19 @@ jobs:
         with:
           path: "_shinylive/"
 
-
       # =====================================================
-      # Publish to shinylive.io
+      # Publish to AWS
       # =====================================================
-      # Deploy the _shinylive/ subdirectory to shinylive.io. It might make sense
-      # to do this as a separate job using the uploaded site/ artifact (like
-      # deploy_gh_pages), but this actually deploys a different subdirectory,
-      # _shinylive/, so we'll just do it in line.
-      - name: Publish to shinylive.io
+      - name: Configure AWS credentials
         if: github.ref == 'refs/heads/deploy'
-        uses: cloudflare/wrangler-action@2.0.0
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          # We need to tell that we're deploying on the "main" branch (even
-          # though we're actually on "deploy" branch) so that it is a production
-          # deployment.
-          command: pages publish _shinylive/ --project-name=shinylive --commit-dirty=true --branch=main
+          role-to-assume: ${{ secrets.AWS_ROLE }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Publish to AWS
+        if: github.ref == 'refs/heads/deploy'
+        run: |
+          aws s3 sync _shinylive/ s3://${{ secrets.AWS_S3_BUCKET }}/
 
 
       # =====================================================
