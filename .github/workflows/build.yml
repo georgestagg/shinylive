@@ -2,7 +2,7 @@ name: Build and deploy shinylive
 
 on:
   push:
-    branches: [main, deploy]
+    branches: [main, deploy-test]
   pull_request:
     branches: [main]
   release:
@@ -76,28 +76,22 @@ jobs:
       # Publish to AWS for shinylive.io
       # =====================================================
       - name: Configure AWS Credentials
-        if: github.ref == 'refs/heads/deploy'
+        if: github.ref == 'refs/heads/deploy-test'
         uses: aws-actions/configure-aws-credentials@v2
-        env:
-          AWS_ACCOUNT_ID: "341745101194"
-          AWS_REGION: us-east-1
         with:
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/ShinyliveDeploy
-          role-session-name: gha-deploy-shinylive
-          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Deploy to S3
-        if: github.ref == 'refs/heads/deploy'
-        env:
-          AWS_CLOUDFRONT_DISTRIBUTION_ID: "E2SN9UWE8YY9EG"
+        if: github.ref == 'refs/heads/deploy-test'
         run: |
           pip install awscli
           gzip -k _shinylive/r/shinylive/webr/R.bin.wasm
-          aws s3 sync _shinylive s3://shinylive.io --delete
-          aws s3 cp --exclude "*" --include "*.data" --include "*.so" --recursive --content-type="application/wasm" --metadata-directive="REPLACE" s3://shinylive.io/r/shinylive/webr/ s3://shinylive.io/r/shinylive/webr/
-          aws s3 cp --exclude "*" --include "*.js.metadata" --recursive --content-type="text/javascript" --metadata-directive="REPLACE" s3://shinylive.io/r/shinylive/webr/ s3://shinylive.io/r/shinylive/webr/
-          aws s3 cp --content-encoding="gzip" --content-type="application/wasm" --metadata-directive="REPLACE" _shinylive/r/shinylive/webr/R.bin.wasm.gz s3://shinylive.io/r/shinylive/webr/R.bin.wasm
-          aws cloudfront create-invalidation --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
+          aws s3 sync _shinylive s3://${{ secrets.AWS_S3_BUCKET }} --delete
+          aws s3 cp --exclude "*" --include "*.data" --include "*.so" --recursive --content-type="application/wasm" --metadata-directive="REPLACE" s3://${{ secrets.AWS_S3_BUCKET }}/r/shinylive/webr/ s3://${{ secrets.AWS_S3_BUCKET }}/r/shinylive/webr/
+          aws s3 cp --exclude "*" --include "*.js.metadata" --recursive --content-type="text/javascript" --metadata-directive="REPLACE" s3://${{ secrets.AWS_S3_BUCKET }}/r/shinylive/webr/ s3://${{ secrets.AWS_S3_BUCKET }}/r/shinylive/webr/
+          aws s3 cp --content-encoding="gzip" --content-type="application/wasm" --metadata-directive="REPLACE" _shinylive/r/shinylive/webr/R.bin.wasm.gz s3://${{ secrets.AWS_S3_BUCKET }}/r/shinylive/webr/R.bin.wasm
+          aws cloudfront create-invalidation --distribution-id ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
 
       # =====================================================
       # Upload _shinylive/ artifact
