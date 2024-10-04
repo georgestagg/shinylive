@@ -45,6 +45,10 @@ FAICONS_WHEEL = faicons-$(FAICONS_VERSION)-py3-none-any.whl
 PLOTNINE_VERSION=0.0.0
 PLOTNINE_WHEEL=plotnine-$(PLOTNINE_VERSION)-py3-none-any.whl
 
+# Hard code a forked polars version for wasm
+POLARS_VERSION = "1.8.2"
+POLARS_WHEEL = polars-$(POLARS_VERSION)-cp38-abi3-emscripten_3_1_58_wasm32.whl
+
 VENV = venv
 PYBIN = $(VENV)/bin
 
@@ -169,7 +173,8 @@ pyodide_packages_local: $(BUILD_DIR)/shinylive/pyodide/$(HTMLTOOLS_WHEEL) \
 	$(BUILD_DIR)/shinylive/pyodide/$(SHINY_WHEEL) \
 	$(BUILD_DIR)/shinylive/pyodide/$(SHINYWIDGETS_WHEEL) \
 	$(BUILD_DIR)/shinylive/pyodide/$(FAICONS_WHEEL) \
-	$(BUILD_DIR)/shinylive/pyodide/$(PLOTNINE_WHEEL)
+	$(BUILD_DIR)/shinylive/pyodide/$(PLOTNINE_WHEEL) \
+	$(BUILD_DIR)/shinylive/pyodide/$(POLARS_WHEEL)
 
 $(BUILD_DIR)/shinylive/pyodide/$(HTMLTOOLS_WHEEL): $(PACKAGE_DIR)/$(HTMLTOOLS_WHEEL)
 	mkdir -p $(BUILD_DIR)/shinylive/pyodide
@@ -199,6 +204,11 @@ $(BUILD_DIR)/shinylive/pyodide/$(PLOTNINE_WHEEL): $(PACKAGE_DIR)/$(PLOTNINE_WHEE
 	mkdir -p $(BUILD_DIR)/shinylive/pyodide
 	rm -f $(BUILD_DIR)/shinylive/pyodide/plotnine*.whl
 	cp $(PACKAGE_DIR)/$(PLOTNINE_WHEEL) $(BUILD_DIR)/shinylive/pyodide/$(PLOTNINE_WHEEL)
+
+$(BUILD_DIR)/shinylive/pyodide/$(POLARS_WHEEL): $(PACKAGE_DIR)/$(POLARS_WHEEL)
+	mkdir -p $(BUILD_DIR)/shinylive/pyodide
+	rm -f $(BUILD_DIR)/shinylive/pyodide/polars*.whl
+	cp $(PACKAGE_DIR)/$(POLARS_WHEEL) $(BUILD_DIR)/shinylive/pyodide/$(POLARS_WHEEL)
 
 $(BUILD_DIR)/export_template/index.html: export_template/index.html
 	mkdir -p $(BUILD_DIR)/export_template
@@ -261,7 +271,8 @@ packages: clean-packages \
 	package-shiny \
 	package-shinywidgets \
 	package-faicons \
-	package-plotnine
+	package-plotnine \
+	package-polars
 
 
 package-htmltools: $(PACKAGE_DIR)/$(HTMLTOOLS_WHEEL)
@@ -274,6 +285,7 @@ package-faicons: $(PACKAGE_DIR)/$(FAICONS_WHEEL)
 
 package-plotnine: $(PACKAGE_DIR)/$(PLOTNINE_WHEEL)
 
+package-polars: $(PACKAGE_DIR)/$(POLARS_WHEEL)
 
 $(PACKAGE_DIR)/$(HTMLTOOLS_WHEEL): $(PYBIN) $(PACKAGE_DIR)/py-htmltools
 	# Remove any old copies of the package
@@ -300,6 +312,10 @@ $(PACKAGE_DIR)/$(PLOTNINE_WHEEL): $(PYBIN) $(PACKAGE_DIR)/plotnine
 	rm -f $(PACKAGE_DIR)/plotnine*.whl
 	$(PYBIN)/pip install -e $(PACKAGE_DIR)/plotnine[build]
 	. $(PYBIN)/activate && cd $(PACKAGE_DIR)/plotnine && make dist && mv dist/*.whl ../$(PLOTNINE_WHEEL)
+
+$(PACKAGE_DIR)/$(POLARS_WHEEL): $(PYBIN)
+	rm -f $(PACKAGE_DIR)/polars*.whl
+	curl --fail -L "https://github.com/georgestagg/polars/releases/download/$(POLARS_VERSION)-wasm/polars-$(POLARS_VERSION)-cp38-abi3-emscripten_3_1_58_wasm32.whl" -o $(PACKAGE_DIR)/$(POLARS_WHEEL)
 
 ## Update the shinylive_lock.json file, based on shinylive_requirements.json
 update_packages_lock: $(PYBIN) $(BUILD_DIR)/shinylive/pyodide
